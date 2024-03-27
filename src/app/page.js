@@ -305,6 +305,7 @@ export default function Home() {
                 <h1 className="text-2xl font-bold pt-6">
                   Enter a pantone color and click submit to generate a story
                 </h1>
+
                 <form onSubmit={handleSubmit}>
                   <input
                     type="text"
@@ -354,7 +355,16 @@ export default function Home() {
                       Click to generate all images
                     </h1>
                     <form onSubmit={(event) => generateAllSceneImages(event)}>
-                      <button type="submit">Generate</button>
+                      <button
+                        type="submit"
+                        style={{
+                          color: getFontColorForBackground(pantone[inputValue]),
+                          backgroundColor: hexColor,
+                        }}
+                        className="button-regenerate"
+                      >
+                        Generate
+                      </button>
                     </form>
                     {/* for page in pages call handle generate scence and add the key as the page index and make a button bellow every image that says regenerate and calls handle generate scence with the page index as num  */}
                     {pages.map((page, index) => {
@@ -362,7 +372,14 @@ export default function Home() {
                       return images[index + 1] === null ? (
                         <div key={index + 1}>
                           {onLoadScene[index + 1] ? (
-                            <p>Loading page {index + 1}...</p>
+                            <div>
+                              <p>Loading page {index + 1}</p>
+                              <div class="loading-dots">
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                              </div>
+                            </div>
                           ) : (
                             ""
                           )}
@@ -406,7 +423,12 @@ export default function Home() {
                 {/* place a text if onLoad is true */}
                 {onLoadCharacter && (
                   <div>
-                    <p>Generating character description and image...</p>
+                    <p>Generating character description and image</p>
+                    <div class="loading-dots">
+                      <div></div>
+                      <div></div>
+                      <div></div>
+                    </div>
                   </div>
                 )}
               </div>
