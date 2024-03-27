@@ -166,12 +166,92 @@ async function updateCharacterDescription(imagePath, color) {
   }
 }
 
+async function generate_scene_description(page, style) {
+  const prompt = `Imagine the following scene as a picture book illustration: '${page}'. Write a detailed visual description of the scene. Don't write about the story, only the setting, what does the scene look like? Talk about the colors, characters, objects, and the overall feel of the scene. Be as detailed as possible. Describe any details that you would need to know to recreate the scene without looking at it. Limit your answer to 150 words. The scene should follow this style: ${style}.`;
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const description = response.text();
+  return description;
+}
+/* 
+print("---------------------------")
+    print(f"Generating image for page: {num}")
+    scene_description = get_scene_decritpion(page, style)
+    image_prompt = "Use the seed 12345 "
+    if len(gen_id) > 0:
+        image_prompt += f" and use the Gen ID {gen_id} "
+    image_prompt += f"to create an image following style: '{style}'. This is the scene description: '{scene_description}'. Here is a detailed description of the character: '{character_description}'. Do NOT add text in the image. Remember to use the specific color '{color['Name']}'. Leave a blank space in one of the corners of the image."
+    image_prompt += " I NEED to test how the tool workswith this EXACT prompt. DO NOT add any detail, just use it AS-IS"
+    print("Image Prompt: ")
+    print(image_prompt)
+    response = client.images.generate(
+        model="dall-e-3",
+        prompt=image_prompt,
+        size="1792x1024",
+        style="natural",
+        quality="standard",
+        n=1,
+    )
+    image_url = response.data[0].url
+    # print(f"Image URL: {image_url}")
+    im = Image.open(requests.get(image_url, stream=True).raw)
+
+    print(f"Image URL: {image_url}") 
+    gen_id = get_gen_id(image_url)
+    image_url = save_name+f"image-{num}.png"
+    im.save(image_url)
+    print(f"Finished generating image for page: {num}")
+    print("---------------------------")
+    return (image_url, gen_id)
+*/
+async function generate_scene_image(
+  page,
+  characterDescription,
+  num,
+  style,
+  storyPath,
+  color,
+  genID = ""
+) {
+  console.log("---------------------------");
+  console.log(`Generating image for page: ${num}`);
+  if (style.length === 0) {
+    style = `Create an image for a children’s picture book in the style of Bruno Munari. The drawing style of the image should be simple and hand drawn with pencil. It is, characterized by its use of bold outlines, a simple and muted color scheme centered around the color of '${color["Name"]}', and textural patterns that impart depth. Avoid using many colors. Create simple aesthetic that is appealing in children's literature.`;
+  }
+  const sceneDescription = await generate_scene_description(page, style);
+  var imagePrompt = `Use the seed 12345 `;
+  if (genID.length > 0) {
+    imagePrompt += ` and use the Gen ID ${genID} `;
+  }
+  imagePrompt += `to create an image following style: '${style}'. This is the scene description: '${sceneDescription}'. Here is a detailed description of the character: '${characterDescription}'. Do NOT add text in the image. Remember to use the specific color '${color["Name"]}'. Leave a blank space in one of the corners of the image.`;
+  imagePrompt +=
+    " I NEED to test how the tool workswith this EXACT prompt. DO NOT add any detail, just use it AS-IS";
+  console.log("Image Prompt: ");
+  console.log(imagePrompt);
+  const response = await openai.images.generate({
+    model: "dall-e-3",
+    prompt: imagePrompt,
+    size: "1792x1024",
+    style: "natural",
+    quality: "standard",
+    n: 1,
+  });
+  const imageURL = response.data[0].url;
+  const imagePath = path.join(storyPath, `/image-${num}.png`);
+  await downloadImage(imageURL, storyPath, `/image-${num}.png`);
+  console.log(`Finished generating image for page: ${num}`);
+  console.log("---------------------------");
+  const base64Image = fs.readFileSync(imagePath).toString("base64");
+  return { image: base64Image };
+}
+
 export async function POST(request) {
   console.log("GEMINI API POST request received!");
   const params = await request.json();
   var res = {};
   if (params.type === "generate_story") {
     console.log("Received generate_story request");
+    console.log(params.color);
     const pages = await generate_story(params.color);
     res = { result: pages };
   }
@@ -181,6 +261,19 @@ export async function POST(request) {
       params.pages,
       params.color,
       params.storyPath
+    );
+    res = { result: result };
+  }
+  if (params.type === "generate_scene_image") {
+    console.log("Received generate_scene request");
+    const result = await generate_scene_image(
+      params.page,
+      params.characterDescription,
+      params.num,
+      params.style,
+      params.storyPath,
+      params.color,
+      params.genID
     );
     res = { result: result };
   }

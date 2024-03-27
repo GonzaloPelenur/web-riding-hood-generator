@@ -31,3 +31,25 @@ body {
     text-wrap: balance;
   }
 }
+
+.button-regenerate {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #FFFFFF;
+  background-color: #007BFF;
+  border: 1px solid #000000;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.button-regenerate:hover,
+.button-regenerate:focus {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.button-regenerate:active {
+  background-color: #004085;
+  transform: scale(0.95);
+}
