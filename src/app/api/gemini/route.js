@@ -245,39 +245,86 @@ async function generate_scene_image(
   return { image: base64Image };
 }
 
+async function generate_bg_image(color, storyPath) {
+  console.log("Generating background image");
+  const prompt = `Create a background image with the theme of '${color["Name"]}'. Your design should be simple, using light colors, and should have patterns suitable to the theme of '${color["Name"]}'`;
+  const response = await openai.images.generate({
+    model: "dall-e-3",
+    prompt: prompt,
+    size: "1792x1024",
+    style: "natural",
+    quality: "standard",
+    n: 1,
+  });
+  const imageURL = response.data[0].url;
+  await downloadImage(imageURL, storyPath, "/background.png");
+  const imagePath = path.join(storyPath, "/background.png");
+  const base64Image = fs.readFileSync(imagePath).toString("base64");
+  console.log("Background image generated");
+  return { image: base64Image };
+}
+
 export async function POST(request) {
   console.log("GEMINI API POST request received!");
   const params = await request.json();
-  var res = {};
+  let res = {};
+  let maxRetries = 3; // Maximum number of retries
+
+  async function withRetry(operation) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        console.log(`Attempt ${attempt} failed with error: ${error.message}`);
+        if (attempt === maxRetries) throw error;
+      }
+    }
+  }
+
   if (params.type === "generate_story") {
     console.log("Received generate_story request");
     console.log(params.color);
-    const pages = await generate_story(params.color);
+    // Wrap the operation in a retry mechanism
+    const pages = await withRetry(() => generate_story(params.color));
     res = { result: pages };
   }
   if (params.type === "generate_character") {
     console.log("Received generate_character request");
-    const result = await generate_character_description(
-      params.pages,
-      params.color,
-      params.storyPath
+    // Wrap the operation in a retry mechanism
+    const result = await withRetry(() =>
+      generate_character_description(
+        params.pages,
+        params.color,
+        params.storyPath
+      )
     );
     res = { result: result };
   }
   if (params.type === "generate_scene_image") {
     console.log("Received generate_scene request");
-    const result = await generate_scene_image(
-      params.page,
-      params.characterDescription,
-      params.num,
-      params.style,
-      params.storyPath,
-      params.color,
-      params.genID
+    // Wrap the operation in a retry mechanism
+    const result = await withRetry(() =>
+      generate_scene_image(
+        params.page,
+        params.characterDescription,
+        params.num,
+        params.style,
+        params.storyPath,
+        params.color,
+        params.genID
+      )
     );
     res = { result: result };
   }
-  // console.log(`got a request: ${JSON.stringify(data, null, 4)}`);
+  if (params.type === "generate_bg_image") {
+    console.log("Received generate_bg_image request");
+    // Wrap the operation in a retry mechanism
+    const result = await withRetry(() =>
+      generate_bg_image(params.color, params.storyPath)
+    );
+    res = { result: result };
+  }
+
   console.log("GEMINI API POST request completed!");
   return NextResponse.json(res);
 }

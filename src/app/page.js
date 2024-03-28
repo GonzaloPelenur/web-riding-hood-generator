@@ -1,29 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import pantone from "../data/pantone-colors-by-key.json";
+import { Input, Button } from "@nextui-org/react";
+import * as React from "react";
 
-async function getData() {
-  try {
-    const response = await fetch("api/openAI", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ test: "test" }),
-    });
-
-    if (response.ok) {
-      console.log("API request successful!");
-      const data = await response.json();
-      setGeneratedText(data.result);
-      setTextIsLoading(false);
-    } else {
-      console.error("API request failed");
-    }
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
+// 1. import `NextUIProvider` component
+import { NextUIProvider } from "@nextui-org/react";
 
 async function createDirectory() {
   try {
@@ -77,6 +59,33 @@ async function generate_character(color, pages, storyPath) {
         color: color,
         type: "generate_character",
         pages: pages,
+        storyPath: storyPath,
+      }),
+    });
+    console.log(response);
+    console.log(response.status);
+    if (response.status === 200) {
+      console.log("API request successful!");
+      const data = await response.json();
+      console.log(data);
+      return data.result;
+    } else {
+      console.error("API request failed");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+async function generate_bg_image(color, storyPath) {
+  try {
+    const response = await fetch("api/gemini", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        color: color,
+        type: "generate_bg_image",
         storyPath: storyPath,
       }),
     });
@@ -177,10 +186,57 @@ export default function Home() {
   const [style, setStyle] = useState("");
   const [genID, setGenID] = useState("");
   const [onLoadScene, setOnLoadScene] = useState([]);
+  const [backgroundImage, setBackgroundImage] = useState("");
+
+  useEffect(() => {
+    // Assuming backgroundImage is the base64 encoded string
+    const base64ImageURI = `data:image/png;base64,${backgroundImage}`;
+
+    // Create the background layer
+    const bgLayer = document.createElement("div");
+    bgLayer.style.position = "fixed";
+    bgLayer.style.top = "0";
+    bgLayer.style.left = "0";
+    bgLayer.style.width = "100%";
+    bgLayer.style.height = "100%";
+    bgLayer.style.background = `url('${base64ImageURI}') no-repeat center center fixed`;
+    bgLayer.style.backgroundSize = "cover";
+    bgLayer.style.zIndex = "-2"; // Ensure it's below the white overlay
+
+    // Create the white overlay layer
+    const whiteOverlay = document.createElement("div");
+    whiteOverlay.style.position = "fixed";
+    whiteOverlay.style.top = "0";
+    whiteOverlay.style.left = "0";
+    whiteOverlay.style.width = "100%";
+    whiteOverlay.style.height = "100%";
+    whiteOverlay.style.backgroundColor = "rgba(255,255,255,0.2)"; // White with 70% opacity
+    whiteOverlay.style.zIndex = "-1"; // Above the image, below the content
+
+    // Append both layers to the body
+    document.body.appendChild(bgLayer);
+    document.body.appendChild(whiteOverlay);
+
+    // Ensure the body's background is transparent so layers show through
+    document.body.style.backgroundColor = "transparent";
+
+    // Cleanup function to remove layers when component unmounts or backgroundImage changes
+    return () => {
+      document.body.removeChild(bgLayer);
+      document.body.removeChild(whiteOverlay);
+      document.body.style.background = "";
+      document.body.style.backgroundColor = "";
+    };
+  }, [backgroundImage]);
+
   const handleChange = (event) => {
     setInputValue(event.target.value);
   };
-
+  const changeBgImage = async (color, storyPath) => {
+    const res = await generate_bg_image(color, storyPath);
+    console.log(res);
+    setBackgroundImage(res.image);
+  };
   const handleSubmit = async (event) => {
     // Prevent the default form submission behavior
     event.preventDefault();
@@ -200,6 +256,7 @@ export default function Home() {
     console.log(res.length + 1);
     setOnLoadScene(new Array(res.length + 1).fill(false));
     setImages(new Array(res.length + 1).fill(null));
+    changeBgImage(pantone[inputValue], story_path);
     // Here you can define other actions to take on form submission,
     // like sending the input value to an API or updating another part of your component state.
   };
@@ -281,163 +338,178 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <div className="flex flex-col items-center justify-between">
-          <div className="flex items-center">
-            <h1 className="text-5xl font-bold">
-              Little {name} Riding Hood Generator
-            </h1>
-            <div
-              style={{
-                width: "50px",
-                height: "50px",
-                backgroundColor: hexColor,
-                marginLeft: "20px",
-              }}
-            ></div>
-          </div>
-
+    <NextUIProvider>
+      <main className="flex min-h-screen flex-col items-center justify-between p-24">
+        <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
           <div className="flex flex-col items-center justify-between">
-            {/* iterate throught the list pages and show then on a p tag */}
-            {pages.length === 0 ? (
-              <div>
-                <h1 className="text-2xl font-bold pt-6">
-                  Enter a pantone color and click submit to generate a story
-                </h1>
+            <div className="flex items-center">
+              <h1 className="text-5xl font-bold">
+                Little {name} Riding Hood Generator
+              </h1>
+              <div
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  backgroundColor: hexColor,
+                  marginLeft: "20px",
+                }}
+              ></div>
+            </div>
 
-                <form onSubmit={handleSubmit}>
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={handleChange}
-                  />
-                  {/* Add a submit button to the form */}
-                  <button type="submit">Submit</button>
-                </form>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-between">
-                <h1 className="text-2xl font-bold pt-6">
-                  Here's the script for Little {name} Riding Hood
-                </h1>
-                {pages.map((page, index) => (
-                  <p key={index}>
-                    [{index + 1}]: {page}
-                  </p>
-                ))}
+            <div className="flex flex-col items-center justify-between">
+              {/* iterate throught the list pages and show then on a p tag */}
+              {pages.length === 0 ? (
                 <div>
                   <h1 className="text-2xl font-bold pt-6">
-                    Click to generate character description and image
+                    Enter a pantone color and click submit to generate a story
                   </h1>
-                  <button
-                    type="submit"
-                    style={{
-                      color: getFontColorForBackground(pantone[inputValue]),
-                      backgroundColor: hexColor,
-                    }}
-                    className="button-regenerate"
-                    onClick={handleCharacterDescription}
-                  >
-                    Generate Character
-                  </button>
-                </div>
-                {console.log(typeof characterDescription)}
-                {typeof characterDescription === "string" &&
-                characterDescription.length > 0 ? (
-                  <div>
-                    <p>{characterDescription}</p>
-                    <img
-                      src={`data:image/png;base64,${images[0]}`}
-                      alt="character"
-                    />
-                    <h1 className="text-2xl font-bold pt-6">
-                      Click to generate all images
-                    </h1>
-                    <form onSubmit={(event) => generateAllSceneImages(event)}>
-                      <button
-                        type="submit"
-                        style={{
-                          color: getFontColorForBackground(pantone[inputValue]),
-                          backgroundColor: hexColor,
-                        }}
-                        className="button-regenerate"
-                      >
-                        Generate
-                      </button>
-                    </form>
-                    {/* for page in pages call handle generate scence and add the key as the page index and make a button bellow every image that says regenerate and calls handle generate scence with the page index as num  */}
-                    {pages.map((page, index) => {
-                      // Explicitly return the JSX
-                      return images[index + 1] === null ? (
-                        <div key={index + 1}>
-                          {onLoadScene[index + 1] ? (
-                            <div>
-                              <p>Loading page {index + 1}</p>
-                              <div class="loading-dots">
-                                <div></div>
-                                <div></div>
-                                <div></div>
-                              </div>
-                            </div>
-                          ) : (
-                            ""
-                          )}
-                        </div>
-                      ) : (
-                        <div key={index + 1}>
-                          {" "}
-                          {/* Ensure each key is unique and moved it to the correct position */}
-                          <img
-                            src={`data:image/png;base64,${images[index + 1]}`}
-                            alt="scene"
-                          />
-                          <p>{page}</p>
-                          <form
-                            onSubmit={(event) =>
-                              handleGenerateSceneImage(event, index + 1)
-                            }
-                          >
-                            <button
-                              type="submit"
-                              style={{
-                                color: getFontColorForBackground(
-                                  pantone[inputValue]
-                                ),
-                                backgroundColor: hexColor,
-                              }}
-                              className="button-regenerate"
-                            >
-                              Regenerate
-                            </button>
-                          </form>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <h1 className="text-2xl font-bold pt-6">
-                    {characterDescription}
-                  </h1>
-                )}
-                {/* place a text if onLoad is true */}
-                {onLoadCharacter && (
-                  <div>
-                    <p>Generating character description and image</p>
-                    <div class="loading-dots">
-                      <div></div>
-                      <div></div>
-                      <div></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* idea for later, implement a color picker and map it to pantone color */}
-      </div>
-    </main>
+                  <form
+                    onSubmit={handleSubmit}
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    <div style={{ marginRight: "8px" }}>
+                      {" "}
+                      {/* Adjust spacing as needed */}
+                      <Input
+                        key="outside-left"
+                        type="text"
+                        labelPlacement="outside-left"
+                        placeholder="moonstruck"
+                        description="Enter a Pantone color"
+                        value={inputValue}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {/* Add a submit button to the form */}
+                    <Button type="submit">Submit</Button>
+                  </form>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-between">
+                  <h1 className="text-2xl font-bold pt-6">
+                    Here's the script for Little {name} Riding Hood
+                  </h1>
+                  {pages.map((page, index) => (
+                    <p key={index}>
+                      [{index + 1}]: {page}
+                    </p>
+                  ))}
+                  <div>
+                    <h1 className="text-2xl font-bold pt-6">
+                      Click to generate character description and image
+                    </h1>
+                    <button
+                      type="submit"
+                      style={{
+                        color: getFontColorForBackground(pantone[inputValue]),
+                        backgroundColor: hexColor,
+                      }}
+                      className="button-regenerate"
+                      onClick={handleCharacterDescription}
+                    >
+                      Generate Character
+                    </button>
+                  </div>
+                  {console.log(typeof characterDescription)}
+                  {typeof characterDescription === "string" &&
+                  characterDescription.length > 0 ? (
+                    <div>
+                      <p>{characterDescription}</p>
+                      <img
+                        src={`data:image/png;base64,${images[0]}`}
+                        alt="character"
+                      />
+                      <h1 className="text-2xl font-bold pt-6">
+                        Click to generate all images
+                      </h1>
+                      <form onSubmit={(event) => generateAllSceneImages(event)}>
+                        <button
+                          type="submit"
+                          style={{
+                            color: getFontColorForBackground(
+                              pantone[inputValue]
+                            ),
+                            backgroundColor: hexColor,
+                          }}
+                          className="button-regenerate"
+                        >
+                          Generate
+                        </button>
+                      </form>
+                      {/* for page in pages call handle generate scence and add the key as the page index and make a button bellow every image that says regenerate and calls handle generate scence with the page index as num  */}
+                      {pages.map((page, index) => {
+                        // Explicitly return the JSX
+                        return images[index + 1] === null ? (
+                          <div key={index + 1}>
+                            {onLoadScene[index + 1] ? (
+                              <div>
+                                <p>Loading page {index + 1}</p>
+                                <div className="loading-dots">
+                                  <div></div>
+                                  <div></div>
+                                  <div></div>
+                                </div>
+                              </div>
+                            ) : (
+                              ""
+                            )}
+                          </div>
+                        ) : (
+                          <div key={index + 1}>
+                            {" "}
+                            {/* Ensure each key is unique and moved it to the correct position */}
+                            <img
+                              src={`data:image/png;base64,${images[index + 1]}`}
+                              alt="scene"
+                            />
+                            <p>{page}</p>
+                            <form
+                              onSubmit={(event) =>
+                                handleGenerateSceneImage(event, index + 1)
+                              }
+                            >
+                              <button
+                                type="submit"
+                                style={{
+                                  color: getFontColorForBackground(
+                                    pantone[inputValue]
+                                  ),
+                                  backgroundColor: hexColor,
+                                }}
+                                className="button-regenerate"
+                              >
+                                Regenerate
+                              </button>
+                            </form>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <h1 className="text-2xl font-bold pt-6">
+                      {characterDescription}
+                    </h1>
+                  )}
+                  {/* place a text if onLoad is true */}
+                  {onLoadCharacter && (
+                    <div>
+                      <p>Generating character description and image</p>
+                      <div className="loading-dots">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* idea for later, implement a color picker and map it to pantone color */}
+        </div>
+      </main>
+    </NextUIProvider>
   );
 }

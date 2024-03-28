@@ -53,3 +53,47 @@ body {
   background-color: #004085;
   transform: scale(0.95);
 }
+
+
+.loading-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-dots div {
+  width: 10px;
+  height: 10px;
+  margin: 0 5px;
+  background-color: #333; /* Customize color */
+  border-radius: 50%;
+  opacity: 0.7; /* Starting opacity */
+  animation: bounce 0.6s infinite alternate, fadeEffect 1.2s infinite;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-20px); /* Customize bounce height */
+  }
+}
+
+@keyframes fadeEffect {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 1; }
+}
+
+/* Delays for the dot animations */
+.loading-dots div:nth-child(1) {
+  animation-delay: 0s, 0s; /* No delay for the first dot */
+}
+
+.loading-dots div:nth-child(2) {
+  animation-delay: 0.2s, 0.1s; /* Delay for the second dot */
+}
+
+.loading-dots div:nth-child(3) {
+  animation-delay: 0.4s, 0.2s; /* Delay for the third dot */
+}
