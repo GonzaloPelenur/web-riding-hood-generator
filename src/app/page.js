@@ -5,6 +5,12 @@ import hexToPantone from "../data/hex-to-pantone.json";
 import { Input, Button, Spinner } from "@nextui-org/react";
 import * as React from "react";
 import ColorPicker from "@/components/ColorPicker";
+import InitialInput from "@/components/InitialInput";
+import DisplayPages from "@/components/DisplayPages";
+import GenerateCharacter from "@/components/GenerateCharacter";
+import Character from "@/components/Character";
+import GenerateImages from "@/components/GenerateImages";
+import DisplayImages from "@/components/DisplayImages";
 
 // 1. import `NextUIProvider` component
 import { NextUIProvider } from "@nextui-org/react";
@@ -415,95 +421,37 @@ export default function Home() {
             <div className="flex flex-col items-center justify-between">
               {/* iterate throught the list pages and show then on a p tag */}
               {pages.length === 0 ? (
-                <div>
-                  <h1 className="text-2xl font-bold pt-6">
-                    Enter a pantone color and click submit to generate a story
-                  </h1>
-
-                  <form
-                    onSubmit={handleSubmit}
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
-                    <div style={{ marginRight: "8px" }}>
-                      {" "}
-                      {/* Adjust spacing as needed */}
-                      <Input
-                        key="outside-left"
-                        type="text"
-                        labelPlacement="outside-left"
-                        placeholder="moonstruck"
-                        description="Enter a Pantone color"
-                        value={inputValue}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    {/* Add a submit button to the form */}
-                    <Button type="submit">Submit</Button>
-                  </form>
-                  <div>
-                    <form onSubmit={mapColor}>
-                      <ColorPicker onColorChange={handleColorPickerChange} />
-                      <p>Selected Color: {colorPicker.toUpperCase()}</p>{" "}
-                      <Button type="submit">Map Color</Button>
-                    </form>
-                  </div>
-                </div>
+                <InitialInput
+                  handleSubmit={handleSubmit}
+                  mapColor={mapColor}
+                  handleColorPickerChange={handleColorPickerChange}
+                  inputValue={inputValue}
+                  handleChange={handleChange}
+                  colorPicker={colorPicker}
+                />
               ) : (
                 <div className="flex flex-col items-center justify-between">
-                  <h1 className="text-2xl font-bold pt-6">
-                    Here's the script for Little {name} Riding Hood
-                  </h1>
-                  {pages.map((page, index) => (
-                    <p key={index}>
-                      [{index + 1}]: {page}
-                    </p>
-                  ))}
-                  <div>
-                    <h1 className="text-2xl font-bold pt-6">
-                      Click to generate character description and image
-                    </h1>
-                    <button
-                      type="submit"
-                      style={{
-                        color: getFontColorForBackground(pantone[inputValue]),
-                        backgroundColor: hexColor,
-                      }}
-                      className="button-regenerate"
-                      onClick={handleCharacterDescription}
-                    >
-                      Generate Character
-                    </button>
-                  </div>
-                  {console.log(typeof characterDescription)}
+                  <DisplayPages name={name} pages={pages} />
+                  <GenerateCharacter
+                    textColor={getFontColorForBackground(pantone[inputValue])}
+                    hexColor={hexColor}
+                    handleCharacterDescription={handleCharacterDescription}
+                  />
                   {typeof characterDescription === "string" &&
                   characterDescription.length > 0 ? (
                     <div>
-                      <p>{characterDescription}</p>
-                      <img
-                        src={`data:image/png;base64,${images[0]}`}
-                        alt="character"
+                      <Character
+                        characterDescription={characterDescription}
+                        images={images}
                       />
-                      <h1 className="text-2xl font-bold pt-6">
-                        Click to generate all images
-                      </h1>
-                      <form onSubmit={(event) => generateAllSceneImages(event)}>
-                        <button
-                          type="submit"
-                          style={{
-                            color: getFontColorForBackground(
-                              pantone[inputValue]
-                            ),
-                            backgroundColor: hexColor,
-                          }}
-                          className="button-regenerate"
-                        >
-                          Generate
-                        </button>
-                      </form>
-                      {/* for page in pages call handle generate scence and add the key as the page index and make a button bellow every image that says regenerate and calls handle generate scence with the page index as num  */}
+                      <GenerateImages
+                        textColor={getFontColorForBackground(
+                          pantone[inputValue]
+                        )}
+                        hexColor={hexColor}
+                        generateAllSceneImages={generateAllSceneImages}
+                      />
                       {pages.map((page, index) => {
-                        // Explicitly return the JSX
                         return images[index + 1] === null ? (
                           <div key={index + 1}>
                             {onLoadScene[index + 1] ? (
@@ -518,33 +466,17 @@ export default function Home() {
                             )}
                           </div>
                         ) : (
-                          <div key={index + 1}>
-                            {" "}
-                            {/* Ensure each key is unique and moved it to the correct position */}
-                            <img
-                              src={`data:image/png;base64,${images[index + 1]}`}
-                              alt="scene"
-                            />
-                            <p>{page}</p>
-                            <form
-                              onSubmit={(event) =>
-                                handleGenerateSceneImage(event, index + 1)
-                              }
-                            >
-                              <button
-                                type="submit"
-                                style={{
-                                  color: getFontColorForBackground(
-                                    pantone[inputValue]
-                                  ),
-                                  backgroundColor: hexColor,
-                                }}
-                                className="button-regenerate"
-                              >
-                                Regenerate
-                              </button>
-                            </form>
-                          </div>
+                          <DisplayImages
+                            key={index + 1}
+                            page={page}
+                            index={index}
+                            images={images}
+                            handleGenerateSceneImage={handleGenerateSceneImage}
+                            textColor={getFontColorForBackground(
+                              pantone[inputValue]
+                            )}
+                            hexColor={hexColor}
+                          />
                         );
                       })}
                     </div>
