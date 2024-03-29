@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import pantone from "../data/pantone-colors-by-key.json";
-import { Input, Button } from "@nextui-org/react";
+import hexToPantone from "../data/hex-to-pantone.json";
+import { Input, Button, Spinner } from "@nextui-org/react";
 import * as React from "react";
+import ColorPicker from "@/components/ColorPicker";
 
 // 1. import `NextUIProvider` component
 import { NextUIProvider } from "@nextui-org/react";
@@ -163,6 +165,47 @@ function getFontColorForBackground(color) {
   return fontColor; // Return black for light backgrounds, white for dark
 }
 
+function hexToRgb(hex) {
+  let r = 0,
+    g = 0,
+    b = 0;
+  // 3 digits
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  }
+  // 6 digits
+  else if (hex.length === 7) {
+    r = parseInt(hex[1] + hex[2], 16);
+    g = parseInt(hex[3] + hex[4], 16);
+    b = parseInt(hex[5] + hex[6], 16);
+  }
+  return [r, g, b];
+}
+
+function findClosestColor(inputHex, colorDict) {
+  let closestColor = "";
+  let smallestDistance = Infinity;
+  const inputRgb = hexToRgb(inputHex);
+
+  for (const [hex, colorName] of Object.entries(colorDict)) {
+    const dictRgb = hexToRgb(hex);
+    const distance = Math.sqrt(
+      Math.pow(dictRgb[0] - inputRgb[0], 2) +
+        Math.pow(dictRgb[1] - inputRgb[1], 2) +
+        Math.pow(dictRgb[2] - inputRgb[2], 2)
+    );
+
+    if (distance < smallestDistance) {
+      closestColor = colorName;
+      smallestDistance = distance;
+    }
+  }
+  console.log(closestColor);
+  return closestColor; // This returns the hex value. You could also return colorName or both.
+}
+
 export default function Home() {
   // const configuration = new Configuration({
   //   apiKey: process.env.OPENAI_API_KEY,
@@ -187,6 +230,11 @@ export default function Home() {
   const [genID, setGenID] = useState("");
   const [onLoadScene, setOnLoadScene] = useState([]);
   const [backgroundImage, setBackgroundImage] = useState("");
+  const [colorPicker, setColorPicker] = useState("#ffffff"); // Default color
+
+  const handleColorPickerChange = (newColor) => {
+    setColorPicker(newColor);
+  };
 
   useEffect(() => {
     // Assuming backgroundImage is the base64 encoded string
@@ -210,7 +258,7 @@ export default function Home() {
     whiteOverlay.style.left = "0";
     whiteOverlay.style.width = "100%";
     whiteOverlay.style.height = "100%";
-    whiteOverlay.style.backgroundColor = "rgba(255,255,255,0.2)"; // White with 70% opacity
+    whiteOverlay.style.backgroundColor = "rgba(255,255,255,0.7)"; // White with 70% opacity
     whiteOverlay.style.zIndex = "-1"; // Above the image, below the content
 
     // Append both layers to the body
@@ -236,6 +284,14 @@ export default function Home() {
     const res = await generate_bg_image(color, storyPath);
     console.log(res);
     setBackgroundImage(res.image);
+  };
+  const mapColor = async (event) => {
+    event.preventDefault();
+    const closestPantone = findClosestColor(colorPicker, hexToPantone);
+    console.log(closestPantone);
+    setInputValue(closestPantone);
+    setHexColor(pantone[closestPantone].HexCode);
+    setName(pantone[closestPantone].Name);
   };
   const handleSubmit = async (event) => {
     // Prevent the default form submission behavior
@@ -381,9 +437,17 @@ export default function Home() {
                         onChange={handleChange}
                       />
                     </div>
+
                     {/* Add a submit button to the form */}
                     <Button type="submit">Submit</Button>
                   </form>
+                  <div>
+                    <form onSubmit={mapColor}>
+                      <ColorPicker onColorChange={handleColorPickerChange} />
+                      <p>Selected Color: {colorPicker.toUpperCase()}</p>{" "}
+                      <Button type="submit">Map Color</Button>
+                    </form>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-between">
@@ -444,12 +508,10 @@ export default function Home() {
                           <div key={index + 1}>
                             {onLoadScene[index + 1] ? (
                               <div>
-                                <p>Loading page {index + 1}</p>
-                                <div className="loading-dots">
-                                  <div></div>
-                                  <div></div>
-                                  <div></div>
-                                </div>
+                                <Spinner
+                                  label={`Loading page ${index + 1}`}
+                                  color="default"
+                                />
                               </div>
                             ) : (
                               ""
@@ -494,12 +556,10 @@ export default function Home() {
                   {/* place a text if onLoad is true */}
                   {onLoadCharacter && (
                     <div>
-                      <p>Generating character description and image</p>
-                      <div className="loading-dots">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                      </div>
+                      <Spinner
+                        label="Generating character description and image..."
+                        color="default"
+                      />
                     </div>
                   )}
                 </div>
