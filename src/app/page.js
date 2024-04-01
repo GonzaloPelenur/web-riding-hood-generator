@@ -444,6 +444,8 @@ export default function Home() {
                     textColor={getFontColorForBackground(pantone[inputValue])}
                     hexColor={hexColor}
                     handleCharacterDescription={handleCharacterDescription}
+                    onLoadCharacter={onLoadCharacter}
+                    characterDescription={characterDescription}
                   />
                   {typeof characterDescription === "string" &&
                   characterDescription.length > 0 ? (
@@ -451,6 +453,11 @@ export default function Home() {
                       <Character
                         characterDescription={characterDescription}
                         images={images}
+                        textColor={getFontColorForBackground(
+                          pantone[inputValue]
+                        )}
+                        hexColor={hexColor}
+                        handleCharacterDescription={handleCharacterDescription}
                       />
                       <GenerateImages
                         textColor={getFontColorForBackground(
@@ -494,17 +501,6 @@ export default function Home() {
                     <h1 className="text-2xl font-bold pt-6">
                       {characterDescription}
                     </h1>
-                  )}
-                  {/* place a text if onLoad is true */}
-                  {onLoadCharacter && (
-                    <div>
-                      <Spinner
-                        label="Generating character description and image..."
-                        style={{
-                          color: hexColor,
-                        }}
-                      />
-                    </div>
                   )}
                 </div>
               )}

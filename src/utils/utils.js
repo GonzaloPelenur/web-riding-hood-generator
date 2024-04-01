@@ -17,6 +17,20 @@ export function createNextStorySubdirectory(storiesDir = "src/data/stories/") {
     return fs.statSync(itemPath).isDirectory() && item.startsWith("story");
   });
 
+  // If more than 10 story directories exist, delete all of them
+  const max = 3;
+  if (storyDirs.length > max) {
+    for (const dirName of storyDirs) {
+      const dirPath = path.join(storiesDir, dirName);
+      fs.rmSync(dirPath, { recursive: true, force: true });
+    }
+    console.log(
+      `More than ${max} story directories found. All have been deleted.`
+    );
+    // After deletion, the directory list is cleared, so reinitialize to avoid creating an unintended directory
+    storyDirs.length = 0;
+  }
+
   // Find the first empty directory, if any
   let emptyDirPath = null;
   for (const dirName of storyDirs) {
