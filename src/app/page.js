@@ -238,6 +238,7 @@ export default function Home() {
   const [backgroundImage, setBackgroundImage] = useState("");
   const [colorPicker, setColorPicker] = useState("#ffffff"); // Default color
   const [onLoadPages, setOnLoadPages] = useState(false);
+  const [disableCharacter, setDisableCharacter] = useState(false);
 
   const handleColorPickerChange = (newColor) => {
     setColorPicker(newColor);
@@ -366,6 +367,7 @@ export default function Home() {
     // like sending the input value to an API or updating another part of your component state.
   };
   const sceneImages = async (num) => {
+    setDisableCharacter(true);
     updateSetOnLoadScene(num, true);
     const res = await generate_scene_image(
       pantone[inputValue],
@@ -458,6 +460,8 @@ export default function Home() {
                         )}
                         hexColor={hexColor}
                         handleCharacterDescription={handleCharacterDescription}
+                        onLoadCharacter={onLoadCharacter}
+                        disableCharacter={disableCharacter}
                       />
                       <GenerateImages
                         textColor={getFontColorForBackground(

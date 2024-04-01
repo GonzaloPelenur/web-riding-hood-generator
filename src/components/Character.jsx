@@ -7,6 +7,8 @@ const Character = ({
   textColor,
   hexColor,
   handleCharacterDescription,
+  onLoadCharacter,
+  disableCharacter,
 }) => {
   return (
     <div>
@@ -15,16 +17,18 @@ const Character = ({
       </h1>
       <p>{characterDescription}</p>
       <img src={`data:image/png;base64,${images[0]}`} alt="character" />
-      <Button
-        type="submit"
-        style={{
-          color: textColor,
-          backgroundColor: hexColor,
-        }}
-        onClick={handleCharacterDescription}
-      >
-        Regenerate Character
-      </Button>
+      {onLoadCharacter || disableCharacter ? null : (
+        <Button
+          type="submit"
+          style={{
+            color: textColor,
+            backgroundColor: hexColor,
+          }}
+          onClick={handleCharacterDescription}
+        >
+          Regenerate Character
+        </Button>
+      )}
     </div>
   );
 };
