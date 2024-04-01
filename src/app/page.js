@@ -237,6 +237,7 @@ export default function Home() {
   const [onLoadScene, setOnLoadScene] = useState([]);
   const [backgroundImage, setBackgroundImage] = useState("");
   const [colorPicker, setColorPicker] = useState("#ffffff"); // Default color
+  const [onLoadPages, setOnLoadPages] = useState(false);
 
   const handleColorPickerChange = (newColor) => {
     setColorPicker(newColor);
@@ -302,7 +303,12 @@ export default function Home() {
   const handleSubmit = async (event) => {
     // Prevent the default form submission behavior
     event.preventDefault();
-
+    // check if inputValue is in pantone
+    if (!(inputValue in pantone)) {
+      console.log("Invalid color");
+      return;
+    }
+    setOnLoadPages(true);
     // For demonstration: log the current input value to the console
     console.log(pantone[inputValue]);
     setHexColor(pantone[inputValue].HexCode);
@@ -319,6 +325,7 @@ export default function Home() {
     setOnLoadScene(new Array(res.length + 1).fill(false));
     setImages(new Array(res.length + 1).fill(null));
     changeBgImage(pantone[inputValue], story_path);
+    setOnLoadPages(false);
     // Here you can define other actions to take on form submission,
     // like sending the input value to an API or updating another part of your component state.
   };
@@ -428,6 +435,7 @@ export default function Home() {
                   inputValue={inputValue}
                   handleChange={handleChange}
                   colorPicker={colorPicker}
+                  onLoadPages={onLoadPages}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-between">
@@ -458,7 +466,9 @@ export default function Home() {
                               <div>
                                 <Spinner
                                   label={`Loading page ${index + 1}`}
-                                  color="default"
+                                  style={{
+                                    foreground: hexColor,
+                                  }}
                                 />
                               </div>
                             ) : (
@@ -490,7 +500,9 @@ export default function Home() {
                     <div>
                       <Spinner
                         label="Generating character description and image..."
-                        color="default"
+                        style={{
+                          color: hexColor,
+                        }}
                       />
                     </div>
                   )}
